@@ -1,0 +1,40 @@
+# Runaway Banana 🍌
+
+A simple browser-based side-scrolling game built with HTML5 Canvas and JavaScript.
+
+## How to Play
+
+- **Start the Game:** Press `Enter`
+- **Jump:** Press `Space`
+- **Drop Banana Peel:** Press `B`
+
+## Game Objective
+
+Control the banana character to avoid obstacles and survive as long as possible. Drop banana peels to remove obstacles in your path and increase your score by staying alive.
+
+## Features
+
+- **Realistic Banana Character:** The banana is drawn with curves and shading for a more lifelike appearance.
+- **Obstacles:** Randomly generated obstacles move from right to left. Colliding with one ends the game.
+- **Banana Peels:** Drop peels to clear obstacles.
+- **Parallax Background:** Multiple scrolling layers for a dynamic environment.
+- **Score Tracking:** Your score increases the longer you survive.
+- **Game States:** Start screen, playing, and game over screens.
+
+## How to Run
+
+1. Download or clone this repository.
+2. Open `index.html` in your web browser.
+3. Enjoy the game!
+
+## Controls
+
+| Key     | Action            |
+|---------|-------------------|
+| Enter   | Start/Restart     |
+| Space   | Jump              |
+| B       | Drop Banana Peel  |
+
+## License
+
+This project is for educational and personal use.
