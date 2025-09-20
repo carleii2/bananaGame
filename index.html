@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Runaway Banana 🍌</title>
+  <style>
+    canvas {
+      display: block;
+      margin: 0 auto;
+      border: 2px solid black;
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let gameOver = false;
+let score = 0;
+
+// ==================== PLAYER ====================
+const banana = {
+  x: 50,
+  y: 300,
+  width: 40,
+  height: 60,
+  color: "yellow",
+  dy: 0,
+  gravity: 0.6,
+  jumpPower: -12,
+  grounded: true
+};
+
+// ==================== OBSTACLES & PEELS ====================
+let obstacles = [];
+let obstacleTimer = 0;
+let peels = [];
+
+// ==================== BACKGROUND LAYERS ====================
+const backgroundLayers = [
+  { color: "skyblue", speed: 0 },   // sky
+  { color: "#a3d977", speed: 1 },   // far trees (greenish)
+  { color: "#4caf50", speed: 2 },   // near trees (darker green)
+  { color: "#3e2723", speed: 4 }    // ground (brown)
+];
+
+// Create "scrolling stripes" for each layer
+backgroundLayers.forEach(layer => {
+  layer.offset = 0;
+});
+
+// ==================== INPUT HANDLER ====================
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && banana.grounded) {
+    banana.dy = banana.jumpPower;
+    banana.grounded = false;
+  }
+  if (e.code === "KeyB") {
+    dropPeel();
+  }
+});
+
+// ==================== PLAYER FUNCTIONS ====================
+function drawBanana() {
+  ctx.fillStyle = banana.color;
+  ctx.fillRect(banana.x, banana.y, banana.width, banana.height);
+
+  // Funny stick legs
+  ctx.strokeStyle = "black";
+  ctx.beginPath();
+  ctx.moveTo(banana.x + 10, banana.y + banana.height);
+  ctx.lineTo(banana.x + 10, banana.y + banana.height + 10);
+  ctx.moveTo(banana.x + 30, banana.y + banana.height);
+  ctx.lineTo(banana.x + 30, banana.y + banana.height + 10);
+  ctx.stroke();
+}
+
+function updateBanana() {
+  banana.y += banana.dy;
+  banana.dy += banana.gravity;
+
+  if (banana.y + banana.height >= 360) {
+    banana.y = 360 - banana.height;
+    banana.dy = 0;
+    banana.grounded = true;
+  }
+}
+
+// ==================== OBSTACLES ====================
+function drawObstacles() {
+  ctx.fillStyle = "brown";
+  obstacles.forEach((obs) => {
+    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+  });
+}
+
+function updateObstacles() {
+  obstacles.forEach((obs) => {
+    obs.x -= 6;
+  });
+
+  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+  obstacleTimer++;
+  if (obstacleTimer > 100) {
+    let height = 40 + Math.random() * 30;
+    obstacles.push({
+      x: canvas.width,
+      y: 360 - height,
+      width: 30,
+      height: height
+    });
+    obstacleTimer = 0;
+  }
+}
+
+// ==================== PEELS ====================
+function dropPeel() {
+  peels.push({
+    x: banana.x,
+    y: 360 - 15,
+    width: 20,
+    height: 10
+  });
+}
+
+function drawPeels() {
+  ctx.fillStyle = "gold";
+  peels.forEach((peel) => {
+    ctx.beginPath();
+    ctx.ellipse(peel.x + peel.width/2, peel.y + peel.height/2, 10, 5, 0, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+}
+
+function updatePeels() {
+  peels.forEach((peel) => {
+    peel.x -= 6;
+  });
+
+  peels = peels.filter(peel => peel.x + peel.width > 0);
+
+  // Check collisions peel vs obstacle
+  peels.forEach((peel) => {
+    obstacles = obstacles.filter(obs => {
+      if (peel.x < obs.x + obs.width &&
+          peel.x + peel.width > obs.x &&
+          peel.y < obs.y + obs.height &&
+          peel.y + peel.height > obs.y) {
+        return false; // obstacle slipped
+      }
+      return true;
+    });
+  });
+}
+
+// ==================== BACKGROUND ====================
+function drawBackground() {
+  backgroundLayers.forEach((layer, index) => {
+    layer.offset -= layer.speed;
+    if (layer.offset <= -canvas.width) {
+      layer.offset = 0;
+    }
+
+    // Draw 2 rectangles to cover screen continuously
+    ctx.fillStyle = layer.color;
+    ctx.fillRect(layer.offset, 0, canvas.width, canvas.height);
+    ctx.fillRect(layer.offset + canvas.width, 0, canvas.width, canvas.height);
+
+    // Add some "shapes" for trees/ground
+    if (index > 0) {
+      ctx.fillStyle = (index === 3 ? "#2e7d32" : "green"); // trees color
+      for (let i = 0; i < 10; i++) {
+        let x = (i * 150 + layer.offset * (index+1)) % canvas.width;
+        let h = 50 + index * 20;
+        ctx.fillRect(x, 360 - h, 20, h); // tree trunks
+      }
+    }
+  });
+}
+
+// ==================== COLLISION ====================
+function checkCollision() {
+  for (let obs of obstacles) {
+    if (banana.x < obs.x + obs.width &&
+        banana.x + banana.width > obs.x &&
+        banana.y < obs.y + obs.height &&
+        banana.y + banana.height > obs.y) {
+      gameOver = true;
+    }
+  }
+}
+
+// ==================== UI ====================
+function drawScore() {
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 30);
+}
+
+// ==================== GAME LOOP ====================
+function gameLoop() {
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "40px Arial";
+    ctx.fillText("GAME OVER 🍌", canvas.width/2 - 120, canvas.height/2);
+    ctx.font = "20px Arial";
+    ctx.fillText("Refresh to play again", canvas.width/2 - 90, canvas.height/2 + 40);
+    return;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background first
+  drawBackground();
+
+  // Update game objects
+  updateBanana();
+  updateObstacles();
+  updatePeels();
+  checkCollision();
+  score++;
+
+  // Draw game objects
+  drawBanana();
+  drawObstacles();
+  drawPeels();
+  drawScore();
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
